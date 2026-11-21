@@ -47,8 +47,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(_: FastAPI):
         await gateway.warm_up()
         log.info(
-            "ready: model=%s keys=%d cache=%s db=%s",
-            settings.model, gateway.keys_configured, gateway.cache_enabled, settings.db_path,
+            "ready: model=%s keys=%d key_ids=%s cache=%s db=%s",
+            settings.model,
+            gateway.keys_configured,
+            ",".join(gateway.key_ids),
+            gateway.cache_enabled,
+            settings.db_path,
         )
         yield
         db.close()

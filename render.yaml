@@ -10,7 +10,7 @@ services:
       - key: LLM_API_KEYS
         sync: false            # paste your keys in the Render dashboard
       - key: LLM_MODEL
-        value: gemini/gemini-2.5-flash
+        value: gemini/gemini-3.5-flash-lite
       - key: ALLOWED_ORIGINS
         sync: false            # your deployed frontend URL
       - key: ENABLE_FAILURE_SIMULATION

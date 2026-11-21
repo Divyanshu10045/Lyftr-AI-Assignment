@@ -74,7 +74,7 @@ VITE_API_URL=http://localhost:8000 npm run dev      # http://localhost:3000
 | Variable | Default | Meaning |
 |---|---|---|
 | `LLM_API_KEYS` | — | Comma-separated key pool. Ids are `key_1`, `key_2`, … in this order |
-| `LLM_MODEL` | `gemini/gemini-2.5-flash` | Any LiteLLM model string. Availability with real keys was not verified here; confirm before submission |
+| `LLM_MODEL` | `gemini/gemini-3.5-flash-lite` | Any LiteLLM model string. Availability with real keys was not verified here; confirm before submission |
 | `PORT` | `8000` | Backend listen port (Render/Railway/Fly inject their own) |
 | `LLM_API_BASE` | empty | Optional OpenAI-compatible endpoint (use an `openai/<model>` string) |
 | `DATABASE_URL` | `sqlite:///./data/app.db` (`sqlite:////data/app.db` in Docker) | SQLite file |

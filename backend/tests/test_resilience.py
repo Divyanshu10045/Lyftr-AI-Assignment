@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from app.gateway import _err_label
+
 from .conftest import sid
 from .test_contract import chat
 
@@ -87,6 +89,52 @@ def test_real_429_from_provider_fails_over_then_key_is_parked(make_client, provi
     # key_1 is cooling down: we go straight to key_2 instead of re-hitting a dead key
     assert (second["key_id"], second["fallback_attempts"]) == ("key_2", 0)
     assert provider.calls[2:] == ["good-2"]
+
+
+def test_both_configured_keys_are_loaded(client):
+    gw = client.app.state.gateway
+    assert gw.key_ids == ["key_1", "key_2"]
+    assert client.get("/health").json()["keys_configured"] == 2
+
+
+def test_real_404_from_provider_fails_over_without_disabling_other_key(make_client, provider):
+    client = make_client(api_keys=["not-found-404", "good-2"])
+    first = chat(client, sid(), "one").json()["metadata"]
+    assert (first["key_id"], first["fallback_attempts"]) == ("key_2", 1)
+    assert provider.calls == ["not-found-404", "good-2"]
+
+    second = chat(client, sid(), "two").json()["metadata"]
+    assert (second["key_id"], second["fallback_attempts"]) == ("key_2", 0)
+    assert provider.calls[2:] == ["good-2"]
+
+
+def test_provider_error_logs_status_and_details_without_keys(make_client, caplog):
+    caplog.set_level("WARNING", logger="gateway")
+    client = make_client(api_keys=["not-found-404", "good-2"])
+    chat(client, sid(), "one")
+
+    text = caplog.text
+    assert "key_id=key_1" in text
+    assert "status=404" in text
+    assert "fake 404 model not found" in text
+    assert "not-found-404" not in text
+
+
+def test_error_labels_redact_key_material():
+    class ProviderError(Exception):
+        status_code = 404
+        llm_provider = "gemini"
+        message = (
+            "404 for https://generativelanguage.googleapis.com/v1beta/models/x:generateContent"
+            "?key=AIzaSUPERSECRET123456 Authorization: Bearer sk-SUPERSECRET654321"
+        )
+
+    label = _err_label(ProviderError())
+    assert "status=404" in label
+    assert "provider=gemini" in label
+    assert "AIzaSUPERSECRET123456" not in label
+    assert "sk-SUPERSECRET654321" not in label
+    assert label.count("<redacted>") == 2
 
 
 def test_quota_and_5xx_errors_fail_over(make_client):

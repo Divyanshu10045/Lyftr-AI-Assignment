@@ -48,7 +48,7 @@ def sqlite_path_from_url(database_url: str) -> str:
 @dataclass(frozen=True)
 class Settings:
     api_keys: list[str] = field(default_factory=list)
-    model: str = "gemini/gemini-2.5-flash"
+    model: str = "gemini/gemini-3.5-flash-lite"
     api_base: str | None = None
     database_url: str = "sqlite:///./data/app.db"
     allowed_origins: list[str] = field(default_factory=lambda: ["http://localhost:3000"])

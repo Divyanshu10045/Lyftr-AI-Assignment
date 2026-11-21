@@ -10,7 +10,9 @@ cannot give us: deterministic key priority, per-request attribution
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+import re
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -25,6 +27,11 @@ log = logging.getLogger("gateway")
 
 LIVE = "LIVE_INFERENCE"
 CACHE = "LLM_CACHE"
+
+_SECRET_QUERY_RE = re.compile(r"(?i)((?:api[_-]?key|key|token|access_token)=)[^&\s\"']+")
+_BEARER_RE = re.compile(r"(?i)bearer\s+[A-Za-z0-9._\-]+")
+_GEMINI_KEY_RE = re.compile(r"AIza[0-9A-Za-z_\-]{10,}")
+_OPENAI_KEY_RE = re.compile(r"sk-[0-9A-Za-z_\-]{10,}")
 
 # Keep LiteLLM quiet: it must never print request details (and so never a key).
 litellm.suppress_debug_info = True
@@ -52,9 +59,51 @@ class LLMResult:
     fallback_attempts: int
 
 
+def _redact(text: str) -> str:
+    text = " ".join(text.split())
+    text = _SECRET_QUERY_RE.sub(r"\1<redacted>", text)
+    text = _BEARER_RE.sub("Bearer <redacted>", text)
+    text = _GEMINI_KEY_RE.sub("<redacted>", text)
+    text = _OPENAI_KEY_RE.sub("<redacted>", text)
+    return text[:500] + ("..." if len(text) > 500 else "")
+
+
+def _provider_detail(exc: BaseException) -> str:
+    pieces: list[str] = []
+    seen: set[str] = set()
+    candidates = [
+        getattr(exc, "message", None) or str(exc),
+        getattr(exc, "body", None),
+        getattr(getattr(exc, "response", None), "text", None),
+    ]
+    for candidate in candidates:
+        if candidate is None:
+            continue
+        if isinstance(candidate, str):
+            piece = candidate
+        else:
+            try:
+                piece = json.dumps(candidate, ensure_ascii=False, default=str)
+            except Exception:
+                piece = str(candidate)
+        if piece and piece not in seen:
+            seen.add(piece)
+            pieces.append(piece)
+    return _redact(" ".join(pieces))
+
+
 def _err_label(exc: BaseException) -> str:
     status = getattr(exc, "status_code", None)
-    return f"{type(exc).__name__}" + (f"({status})" if status else "")
+    provider = getattr(exc, "llm_provider", None)
+    label = type(exc).__name__
+    if provider:
+        label += f" provider={provider}"
+    if status is not None:
+        label += f" status={status}"
+    detail = _provider_detail(exc)
+    if detail:
+        label += f" detail={detail}"
+    return label
 
 
 class Gateway:
@@ -168,7 +217,12 @@ class Gateway:
                 raise
             except Exception as exc:
                 failed += 1
-                log.warning("key failed key_id=%s error=%s -> failing over", key_id, _err_label(exc))
+                log.warning(
+                    "key failed key_id=%s model=%s error=%s -> failing over",
+                    key_id,
+                    s.model,
+                    _err_label(exc),
+                )
                 if key_id not in simulate:  # simulated failures are per-request only
                     self._park(key_id)
                 continue

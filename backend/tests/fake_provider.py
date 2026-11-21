@@ -5,6 +5,7 @@ path (HTTP call -> exception mapping -> failover -> cache) is exercised:
 
     key contains "429"   -> HTTP 429 (rate limited)
     key contains "quota" -> HTTP 429 (quota exhausted)
+    key contains "404"   -> HTTP 404 (model/key not found)
     key contains "500"   -> HTTP 500
     key contains "503"   -> HTTP 503
     anything else        -> a deterministic answer
@@ -51,9 +52,10 @@ class FakeProvider:
         key = request.headers.get("authorization", "").removeprefix("Bearer ").strip()
         self.calls.append(key)
         time.sleep(LATENCY_SECONDS)
-        for needle, status in (("429", 429), ("quota", 429), ("500", 500), ("503", 503)):
+        for needle, status in (("429", 429), ("quota", 429), ("404", 404), ("500", 500), ("503", 503)):
             if needle in key:
-                return JSONResponse({"error": {"message": f"fake {needle}", "type": "fake"}}, status_code=status)
+                message = "fake 404 model not found" if needle == "404" else f"fake {needle}"
+                return JSONResponse({"error": {"message": message, "type": "fake"}}, status_code=status)
         messages = body["messages"]
         reply = self._answer(messages)
         prompt_tokens = sum(len(m["content"].split()) for m in messages) + 3

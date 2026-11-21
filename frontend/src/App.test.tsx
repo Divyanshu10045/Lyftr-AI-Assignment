@@ -27,7 +27,7 @@ import type { ChatMetadata } from "./types";
 
 const liveMeta: ChatMetadata = {
   resolution_source: "LIVE_INFERENCE",
-  model: "gemini/gemini-2.5-flash",
+  model: "gemini/gemini-3.5-flash-lite",
   latency_ms: 812,
   input_tokens: 42,
   output_tokens: 9,
@@ -37,7 +37,7 @@ const liveMeta: ChatMetadata = {
 
 const cacheMeta: ChatMetadata = {
   resolution_source: "LLM_CACHE",
-  model: "gemini/gemini-2.5-flash",
+  model: "gemini/gemini-3.5-flash-lite",
   latency_ms: 1,
   input_tokens: 42,
   output_tokens: 9,
@@ -74,7 +74,7 @@ describe("Relay Chat", () => {
     );
     expect(screen.getByTestId("chat-input")).toHaveValue("");
     expect(screen.getByTestId("meta-source")).toHaveTextContent("LIVE_INFERENCE");
-    expect(screen.getByTestId("meta-model")).toHaveTextContent("gemini/gemini-2.5-flash");
+    expect(screen.getByTestId("meta-model")).toHaveTextContent("gemini/gemini-3.5-flash-lite");
     expect(screen.getByTestId("meta-latency")).toHaveTextContent("812 ms");
     expect(screen.getByTestId("meta-input-tokens")).toHaveTextContent("42");
     expect(screen.getByTestId("meta-output-tokens")).toHaveTextContent("9");
@@ -84,7 +84,7 @@ describe("Relay Chat", () => {
     render(<AssistantMessage text="The capital is Paris." meta={cacheMeta} />);
 
     expect(screen.getByTestId("meta-source")).toHaveTextContent("LLM_CACHE");
-    expect(screen.getByTestId("meta-model")).toHaveTextContent("gemini/gemini-2.5-flash");
+    expect(screen.getByTestId("meta-model")).toHaveTextContent("gemini/gemini-3.5-flash-lite");
     expect(screen.getByTestId("meta-latency")).toHaveTextContent("1 ms");
     expect(screen.getByTestId("meta-input-tokens")).toHaveTextContent("42");
     expect(screen.getByTestId("meta-output-tokens")).toHaveTextContent("9");
