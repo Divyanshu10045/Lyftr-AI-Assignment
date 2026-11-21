@@ -6,8 +6,8 @@ import os
 from dataclasses import dataclass, field
 
 DEFAULT_SYSTEM_PROMPT = (
-    "You are a helpful, concise assistant. Answer clearly and accurately, "
-    "and use the earlier messages in this conversation for context."
+    "Answer concisely and directly. "
+    "Use earlier messages in this conversation for context."
 )
 
 
