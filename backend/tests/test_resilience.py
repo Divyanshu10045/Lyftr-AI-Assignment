@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-from app.gateway import _err_label
+import asyncio
+
+from litellm.types.utils import ModelResponse, Usage
+
+from app.config import Settings
+from app.gateway import Gateway, _err_label
 
 from .conftest import sid
 from .test_contract import chat
@@ -95,6 +100,25 @@ def test_both_configured_keys_are_loaded(client):
     gw = client.app.state.gateway
     assert gw.key_ids == ["key_1", "key_2"]
     assert client.get("/health").json()["keys_configured"] == 2
+
+
+def test_gemini_3_request_omits_temperature(monkeypatch):
+    captured = {}
+
+    async def fake_acompletion(**kwargs):
+        captured.update(kwargs)
+        return ModelResponse(
+            model=kwargs["model"],
+            choices=[{"index": 0, "message": {"role": "assistant", "content": "ok"}, "finish_reason": "stop"}],
+            usage=Usage(prompt_tokens=1, completion_tokens=1, total_tokens=2),
+        )
+
+    monkeypatch.setattr("app.gateway.litellm.acompletion", fake_acompletion)
+    settings = Settings(api_keys=["good-1"], model="gemini/gemini-3.5-flash-lite", cache_enabled=False)
+    result = asyncio.run(Gateway(settings).complete([{"role": "user", "content": "hi"}]))
+
+    assert result.reply == "ok"
+    assert "temperature" not in captured
 
 
 def test_real_404_from_provider_fails_over_without_disabling_other_key(make_client, provider):

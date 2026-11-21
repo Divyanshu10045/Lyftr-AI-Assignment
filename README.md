@@ -84,7 +84,7 @@ VITE_API_URL=http://localhost:8000 npm run dev      # http://localhost:3000
 | `CACHE_ENABLED` | `true` | LiteLLM in-memory response cache |
 | `KEY_COOLDOWN_SECONDS` | `60` | How long a really-failed key is skipped first |
 | `REQUEST_TIMEOUT_SECONDS` | `30` | Per-key provider timeout |
-| `LLM_TEMPERATURE` | `0` | Sampling temperature (also part of the cache key) |
+| `LLM_TEMPERATURE` | `0` | Sampling temperature (also part of the cache key); omitted for models that reject it, including Gemini 3 |
 | `LLM_MAX_OUTPUT_TOKENS` | empty | Optional provider cap (also part of the cache key) |
 | `DEFAULT_SYSTEM_PROMPT` | built-in prompt | Default used when a session has no override |
 | `MAX_HISTORY_MESSAGES` | `40` | Latest messages sent to the model (full history stays in SQLite) |
@@ -96,7 +96,7 @@ VITE_API_URL=http://localhost:8000 npm run dev      # http://localhost:3000
 make test          # or: cd backend && pytest -q
 ```
 
-43 tests cover the API contract, validation, history, sessions, persistence, CORS, failover (simulated and real HTTP 404 / 429 / quota / 5xx), cache hits and misses, per-request token accounting, provider-error logging, key redaction, and Gemini model normalization. They run against a local fake OpenAI-compatible provider, so they need no network and no API keys, yet they still go through the real LiteLLM code path. No real-provider or Docker tests were run in the environment used to prepare this README.
+44 tests cover the API contract, validation, history, sessions, persistence, CORS, failover (simulated and real HTTP 404 / 429 / quota / 5xx), cache hits and misses, per-request token accounting, provider-error logging, key redaction, Gemini model normalization, and unsupported-parameter handling. They run against a local fake OpenAI-compatible provider, so they need no network and no API keys, yet they still go through the real LiteLLM code path. No real-provider or Docker tests were run in the environment used to prepare this README.
 
 ## 3. Design decisions: key fallback, caching, SQLite session storage
 
@@ -133,7 +133,7 @@ Every error is JSON with `detail`: 422 for validation or malformed JSON, 404 for
 
 ### What was verified here
 
-- Local: 43 backend pytest tests against the fake OpenAI-compatible provider; frontend `npm run build` and Vitest/RTL component tests.
+- Local: 44 backend pytest tests against the fake OpenAI-compatible provider; frontend `npm run build` and Vitest/RTL component tests.
 - Local browser checks reported by the owner: live reply, cache hit, failover to `key_2`, and the all-keys-failed banner at desktop and mobile widths.
 - Verified deployment checks: `/health` returned `200` with two keys configured, the database reachable, failure simulation enabled, and CORS allowed the deployed frontend origin.
 - Not verified here: real Gemini answer/cache/failover, real token counts, real cache-hit latency, Docker build/restart persistence, or the final recorded demo.

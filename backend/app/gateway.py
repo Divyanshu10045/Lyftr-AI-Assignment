@@ -106,6 +106,11 @@ def _err_label(exc: BaseException) -> str:
     return label
 
 
+def _supports_param(model: str, param: str) -> bool:
+    supported = litellm.get_supported_openai_params(model)
+    return supported is None or param in supported
+
+
 class Gateway:
     def __init__(self, settings: Settings):
         self.settings = settings
@@ -195,10 +200,11 @@ class Gateway:
                 model=s.model,
                 messages=messages,
                 api_key=key,
-                temperature=s.temperature,
                 timeout=s.request_timeout_seconds,
                 num_retries=0,  # retries across *keys* are ours; no same-key retry
             )
+            if _supports_param(s.model, "temperature"):
+                call["temperature"] = s.temperature
             if s.api_base:
                 call["api_base"] = s.api_base
             if s.max_output_tokens:
