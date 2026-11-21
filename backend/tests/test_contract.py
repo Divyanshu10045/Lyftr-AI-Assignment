@@ -36,6 +36,12 @@ def test_health_degraded_without_keys(make_client):
     assert r.status_code == 503 and r.json()["status"] == "degraded"
 
 
+def test_gemini_model_without_provider_prefix_is_normalized():
+    assert Settings.from_env({"LLM_MODEL": "gemini-3.5-flash-lite"}).model == "gemini/gemini-3.5-flash-lite"
+    assert Settings.from_env({"LLM_MODEL": "gemini/gemini-3.5-flash-lite"}).model == "gemini/gemini-3.5-flash-lite"
+    assert Settings.from_env({"LLM_MODEL": "openai/fake-model"}).model == "openai/fake-model"
+
+
 # ------------------------------------------------------------------- /chat
 def test_chat_happy_path_matches_contract(client):
     s = sid()

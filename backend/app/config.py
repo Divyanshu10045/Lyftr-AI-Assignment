@@ -35,6 +35,13 @@ def _float(value: str | None, default: float) -> float:
         return default
 
 
+def _model(value: str) -> str:
+    value = value.strip()
+    if value.startswith("gemini-") and "/" not in value:
+        return f"gemini/{value}"
+    return value
+
+
 def sqlite_path_from_url(database_url: str) -> str:
     """`sqlite:////data/app.db` -> `/data/app.db`, `sqlite:///./app.db` -> `./app.db`."""
     prefix = "sqlite:///"
@@ -71,7 +78,7 @@ class Settings:
         max_tokens = _int(e.get("LLM_MAX_OUTPUT_TOKENS"), 0)
         return cls(
             api_keys=_split(e.get("LLM_API_KEYS")),
-            model=(e.get("LLM_MODEL") or cls.model).strip(),
+            model=_model(e.get("LLM_MODEL") or cls.model),
             api_base=(e.get("LLM_API_BASE") or "").strip() or None,
             database_url=(e.get("DATABASE_URL") or cls.database_url).strip(),
             allowed_origins=_split(e.get("ALLOWED_ORIGINS")) or ["http://localhost:3000"],

@@ -17,12 +17,12 @@ A small, production-minded full-stack chat app: **React** UI, **FastAPI** backen
 
 | | URL / status |
 |---|---|
-| Frontend | PENDING — `https://<your-frontend>.vercel.app` (fill after deploying) |
-| Backend | PENDING — `https://<your-backend>.onrender.com` (fill after deploying) |
-| Health check | PENDING — `<backend>/health` |
+| Frontend | `https://lyftr-ai-assignment-frontend.vercel.app/` (deployed) |
+| Backend | `https://lyftr-ai-assignment-g3ss.onrender.com` (deployed) |
+| Health check | `https://lyftr-ai-assignment-g3ss.onrender.com/health` (verified `200`) |
 | Demo video | PENDING — `<link>` |
 
-No live deployment was verified in the environment used to prepare this README. Local checks and their limits are listed in section 4.
+Deployment health and CORS were verified. Real-provider chat is pending final verification after redeploying with the normalized `gemini/gemini-3.5-flash-lite` route. Local checks and their limits are listed in section 4.
 
 ### Deploying
 
@@ -31,13 +31,14 @@ No live deployment was verified in the environment used to prepare this README. 
 | Variable | Value |
 |---|---|
 | `LLM_API_KEYS` | your keys, comma-separated (at least 2) |
+| `LLM_MODEL` | `gemini/gemini-3.5-flash-lite` (unprefixed `gemini-*` values are normalized automatically) |
 | `ENABLE_FAILURE_SIMULATION` | `true` (required for the failover demo) |
-| `ALLOWED_ORIGINS` | your deployed frontend URL, e.g. `https://relay-chat.vercel.app` |
+| `ALLOWED_ORIGINS` | `http://localhost:3000,https://lyftr-ai-assignment-frontend.vercel.app` |
 | `DATABASE_URL` | `sqlite:////data/app.db` (attach a disk at `/data` if your plan supports it) |
 
 The container reads `$PORT`, so it also runs on Railway, Fly.io, or a Hugging Face Docker Space (set the Space's `app_port` to the port you expose).
 
-**Frontend (Vercel / Netlify / Cloudflare Pages).** Root directory `frontend`, build command `npm run build`, output directory `dist`, and one environment variable: `VITE_API_URL=https://<your-backend>`. Then add the frontend URL to the backend's `ALLOWED_ORIGINS`.
+**Frontend (Vercel / Netlify / Cloudflare Pages).** Root directory `frontend`, build command `npm run build`, output directory `dist`, and one environment variable: `VITE_API_URL=https://lyftr-ai-assignment-g3ss.onrender.com`. Then add the frontend URL to the backend's `ALLOWED_ORIGINS`.
 
 > Hosting note: free web tiers usually have an ephemeral filesystem and sleep when idle. Without a persistent disk, SQLite history resets when the container is recreated. Locally, the Docker named volume keeps it. The first request after a free-tier sleep is slow, so open `/health` before recording the demo.
 
@@ -95,7 +96,7 @@ VITE_API_URL=http://localhost:8000 npm run dev      # http://localhost:3000
 make test          # or: cd backend && pytest -q
 ```
 
-38 tests cover the API contract, validation, history, sessions, persistence, CORS, failover (simulated and real HTTP 429 / quota / 5xx), cache hits and misses, and per-request token accounting. They run against a local fake OpenAI-compatible provider, so they need no network and no API keys, yet they still go through the real LiteLLM code path. No real-provider, Docker, or deployment tests were run in the environment used to prepare this README.
+43 tests cover the API contract, validation, history, sessions, persistence, CORS, failover (simulated and real HTTP 404 / 429 / quota / 5xx), cache hits and misses, per-request token accounting, provider-error logging, key redaction, and Gemini model normalization. They run against a local fake OpenAI-compatible provider, so they need no network and no API keys, yet they still go through the real LiteLLM code path. No real-provider or Docker tests were run in the environment used to prepare this README.
 
 ## 3. Design decisions: key fallback, caching, SQLite session storage
 
@@ -132,14 +133,15 @@ Every error is JSON with `detail`: 422 for validation or malformed JSON, 404 for
 
 ### What was verified here
 
-- Local: 38 backend pytest tests against the fake OpenAI-compatible provider; frontend `npm run build` and Vitest/RTL component tests.
+- Local: 43 backend pytest tests against the fake OpenAI-compatible provider; frontend `npm run build` and Vitest/RTL component tests.
 - Local browser checks reported by the owner: live reply, cache hit, failover to `key_2`, and the all-keys-failed banner at desktop and mobile widths.
-- Not verified here: real Gemini model availability, real token counts, real cache-hit latency, Docker build/restart persistence, and any live deployment/CORS. Replace the placeholders in section 1 only after those checks pass.
+- Verified deployment checks: `/health` returned `200` with two keys configured, the database reachable, failure simulation enabled, and CORS allowed the deployed frontend origin.
+- Not verified here: real Gemini answer/cache/failover, real token counts, real cache-hit latency, Docker build/restart persistence, or the final recorded demo.
 
 Open the frontend; the sidebar has a **Simulate a provider failure** menu (shown when the backend has `ENABLE_FAILURE_SIMULATION=true`). Or use curl:
 
 ```bash
-API=https://<your-backend>
+API=https://lyftr-ai-assignment-g3ss.onrender.com
 
 # health
 curl -s $API/health
@@ -184,7 +186,7 @@ curl -si $API/chat -H 'Content-Type: application/json' -d '{"session_id":"s-x","
 ## 5. Setup Used: your editor and AI tools
 
 - Editor: opencode CLI in the terminal; Divyanshu's desktop editor name was not specified and should be filled in before submission.
-- AI tools: Claude (Anthropic) and opencode were used as coding assistants for scaffolding, code changes, tests and this README. Divyanshu reviewed the work and ran the local backend/frontend/browser checks. Docker, real-Gemini and deployment checks were not run in the environment used to prepare this file.
+- AI tools: Claude (Anthropic) and opencode were used as coding assistants for scaffolding, code changes, tests and this README. Divyanshu reviewed the work and ran the local backend/frontend/browser checks. Docker and real-Gemini success were not verified in the environment used to prepare this file; deployment health and CORS were checked separately.
 - Stack: Python 3.12, FastAPI, LiteLLM 1.110.2, SQLite, React 18 + Vite + TypeScript, nginx, Docker Compose.
 
 ## 6. Bonus features (if any): what you added beyond the requirements and why
