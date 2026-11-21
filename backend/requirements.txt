@@ -1,0 +1,7 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+litellm==1.110.2
+# litellm lazily imports these on the cache-hit path; pinning them avoids
+# "ModuleNotFoundError" on the first cached response in a slim image.
+orjson>=3.10
+soundfile>=0.12
