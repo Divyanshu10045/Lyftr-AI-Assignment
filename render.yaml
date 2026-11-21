@@ -1,0 +1,19 @@
+# Render Blueprint for the backend. The frontend goes on Vercel/Netlify (see README).
+services:
+  - type: web
+    name: relay-chat-backend
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: LLM_API_KEYS
+        sync: false            # paste your keys in the Render dashboard
+      - key: LLM_MODEL
+        value: gemini/gemini-2.5-flash
+      - key: ALLOWED_ORIGINS
+        sync: false            # your deployed frontend URL
+      - key: ENABLE_FAILURE_SIMULATION
+        value: "true"
+      - key: DATABASE_URL
+        value: sqlite:////data/app.db
