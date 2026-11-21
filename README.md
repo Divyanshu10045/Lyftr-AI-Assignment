@@ -22,7 +22,7 @@ A small, production-minded full-stack chat app: **React** UI, **FastAPI** backen
 | Health check | `https://lyftr-ai-assignment-g3ss.onrender.com/health` (verified `200`) |
 | Demo video | PENDING — `<link>` |
 
-Deployment health and CORS were verified. Real-provider chat is pending final verification after redeploying with the normalized `gemini/gemini-3.5-flash-lite` route. Local checks and their limits are listed in section 4.
+Deployment health, CORS, real Gemini replies, cache hits, failover, and the all-keys-failed path were verified on the deployed backend. The demo video link is still pending. Local checks and their limits are listed in section 4.
 
 ### Deploying
 
@@ -96,7 +96,7 @@ VITE_API_URL=http://localhost:8000 npm run dev      # http://localhost:3000
 make test          # or: cd backend && pytest -q
 ```
 
-44 tests cover the API contract, validation, history, sessions, persistence, CORS, failover (simulated and real HTTP 404 / 429 / quota / 5xx), cache hits and misses, per-request token accounting, provider-error logging, key redaction, Gemini model normalization, and unsupported-parameter handling. They run against a local fake OpenAI-compatible provider, so they need no network and no API keys, yet they still go through the real LiteLLM code path. No real-provider or Docker tests were run in the environment used to prepare this README.
+44 tests cover the API contract, validation, history, sessions, persistence, CORS, failover (simulated and real HTTP 404 / 429 / quota / 5xx), cache hits and misses, per-request token accounting, provider-error logging, key redaction, Gemini model normalization, and unsupported-parameter handling. They run against a local fake OpenAI-compatible provider, so they need no network and no API keys, yet they still go through the real LiteLLM code path. Real Gemini behavior was checked separately on the deployed backend; Docker was not verified here.
 
 ## 3. Design decisions: key fallback, caching, SQLite session storage
 
@@ -135,8 +135,9 @@ Every error is JSON with `detail`: 422 for validation or malformed JSON, 404 for
 
 - Local: 44 backend pytest tests against the fake OpenAI-compatible provider; frontend `npm run build` and Vitest/RTL component tests.
 - Local browser checks reported by the owner: live reply, cache hit, failover to `key_2`, and the all-keys-failed banner at desktop and mobile widths.
-- Verified deployment checks: `/health` returned `200` with two keys configured, the database reachable, failure simulation enabled, and CORS allowed the deployed frontend origin.
-- Not verified here: real Gemini answer/cache/failover, real token counts, real cache-hit latency, Docker build/restart persistence, or the final recorded demo.
+- Verified deployment checks: `/health` returned `200` with two keys configured, the database reachable, failure simulation enabled, the normalized `gemini/gemini-3.5-flash-lite` model, and CORS allowed the deployed frontend origin.
+- Verified live Gemini checks: a live reply used `key_1`; the same first prompt in a new session returned `LLM_CACHE` with a lower latency; simulated `key_1=429` answered from `key_2`; simulated `*=429` returned `503` and stored no session history.
+- Not verified here: Docker build/restart persistence or the final recorded demo.
 
 Open the frontend; the sidebar has a **Simulate a provider failure** menu (shown when the backend has `ENABLE_FAILURE_SIMULATION=true`). Or use curl:
 
@@ -186,7 +187,7 @@ curl -si $API/chat -H 'Content-Type: application/json' -d '{"session_id":"s-x","
 ## 5. Setup Used: your editor and AI tools
 
 - Editor: opencode CLI in the terminal; Divyanshu's desktop editor name was not specified and should be filled in before submission.
-- AI tools: Claude (Anthropic) and opencode were used as coding assistants for scaffolding, code changes, tests and this README. Divyanshu reviewed the work and ran the local backend/frontend/browser checks. Docker and real-Gemini success were not verified in the environment used to prepare this file; deployment health and CORS were checked separately.
+- AI tools: Claude (Anthropic) and opencode were used as coding assistants for scaffolding, code changes, tests and this README. Divyanshu reviewed the work and ran the local backend/frontend/browser checks. Docker was not verified here; deployment health, CORS, and real Gemini behavior were checked on the deployed services.
 - Stack: Python 3.12, FastAPI, LiteLLM 1.110.2, SQLite, React 18 + Vite + TypeScript, nginx, Docker Compose.
 
 ## 6. Bonus features (if any): what you added beyond the requirements and why
