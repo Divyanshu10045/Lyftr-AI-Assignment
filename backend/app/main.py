@@ -8,6 +8,7 @@ import math
 import time
 import weakref
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,6 +22,14 @@ from .simulate import parse_failure_header
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("app")
+
+
+def _dated_prompt(prompt: str) -> str:
+    today = datetime.now(timezone.utc).date().isoformat()
+    return (
+        f"Current date: {today}. Interpret relative dates (for example, \"last year\") "
+        f"relative to this date. If the user gives an explicit year, use that year. {prompt}"
+    )
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -106,7 +115,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             )
             system_prompt = req.system_prompt or stored_prompt or settings.default_system_prompt
             messages = (
-                [{"role": "system", "content": system_prompt}]
+                [{"role": "system", "content": _dated_prompt(system_prompt)}]
                 + history
                 + [{"role": "user", "content": req.message}]
             )

@@ -86,7 +86,7 @@ VITE_API_URL=http://localhost:8000 npm run dev      # http://localhost:3000
 | `REQUEST_TIMEOUT_SECONDS` | `30` | Per-key provider timeout |
 | `LLM_TEMPERATURE` | `0` | Sampling temperature (also part of the cache key); omitted for models that reject it, including Gemini 3 |
 | `LLM_MAX_OUTPUT_TOKENS` | empty | Optional provider cap (also part of the cache key) |
-| `DEFAULT_SYSTEM_PROMPT` | built-in prompt | Default used when a session has no override |
+| `DEFAULT_SYSTEM_PROMPT` | built-in prompt | Default used when a session has no override; a current-date instruction is prepended at runtime |
 | `MAX_HISTORY_MESSAGES` | `40` | Latest messages sent to the model (full history stays in SQLite) |
 | `API_URL` / `VITE_API_URL` | `http://localhost:8000` | Backend URL for the frontend (Docker runtime / static-host build time) |
 
@@ -96,7 +96,7 @@ VITE_API_URL=http://localhost:8000 npm run dev      # http://localhost:3000
 make test          # or: cd backend && pytest -q
 ```
 
-44 tests cover the API contract, validation, history, sessions, persistence, CORS, failover (simulated and real HTTP 404 / 429 / quota / 5xx), cache hits and misses, per-request token accounting, provider-error logging, key redaction, Gemini model normalization, and unsupported-parameter handling. They run against a local fake OpenAI-compatible provider, so they need no network and no API keys, yet they still go through the real LiteLLM code path. Real Gemini behavior was checked separately on the deployed backend; Docker was not verified here.
+45 tests cover the API contract, validation, history, sessions, persistence, CORS, failover (simulated and real HTTP 404 / 429 / quota / 5xx), cache hits and misses, per-request token accounting, provider-error logging, key redaction, Gemini model normalization, unsupported-parameter handling, and date-aware prompts. They run against a local fake OpenAI-compatible provider, so they need no network and no API keys, yet they still go through the real LiteLLM code path. Real Gemini behavior was checked separately on the deployed backend; Docker was not verified here.
 
 ## 3. Design decisions: key fallback, caching, SQLite session storage
 
@@ -133,7 +133,7 @@ Every error is JSON with `detail`: 422 for validation or malformed JSON, 404 for
 
 ### What was verified here
 
-- Local: 44 backend pytest tests against the fake OpenAI-compatible provider; frontend `npm run build` and Vitest/RTL component tests.
+- Local: 45 backend pytest tests against the fake OpenAI-compatible provider; frontend `npm run build` and Vitest/RTL component tests.
 - Local browser checks reported by the owner: live reply, cache hit, failover to `key_2`, and the all-keys-failed banner at desktop and mobile widths.
 - Verified deployment checks: `/health` returned `200` with two keys configured, the database reachable, failure simulation enabled, the normalized `gemini/gemini-3.5-flash-lite` model, and CORS allowed the deployed frontend origin.
 - Verified live Gemini checks: a live reply used `key_1`; the same first prompt in a new session returned `LLM_CACHE` with a lower latency; simulated `key_1=429` answered from `key_2`; simulated `*=429` returned `503` and stored no session history.

@@ -7,7 +7,7 @@ import sqlite3
 from fastapi.testclient import TestClient
 
 from app.config import Settings
-from app.main import create_app
+from app.main import _dated_prompt, create_app
 
 from .conftest import sid
 
@@ -40,6 +40,14 @@ def test_gemini_model_without_provider_prefix_is_normalized():
     assert Settings.from_env({"LLM_MODEL": "gemini-3.5-flash-lite"}).model == "gemini/gemini-3.5-flash-lite"
     assert Settings.from_env({"LLM_MODEL": "gemini/gemini-3.5-flash-lite"}).model == "gemini/gemini-3.5-flash-lite"
     assert Settings.from_env({"LLM_MODEL": "openai/fake-model"}).model == "openai/fake-model"
+
+
+def test_system_prompt_includes_current_date():
+    prompt = _dated_prompt("Be concise")
+    assert prompt.startswith("Current date: ")
+    assert "Interpret relative dates" in prompt
+    assert "explicit year" in prompt
+    assert prompt.endswith("Be concise")
 
 
 # ------------------------------------------------------------------- /chat
